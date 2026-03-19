@@ -1,10 +1,28 @@
+# -*- coding: utf-8 -*-
+"""
+Selenium Test Suite for Student Feedback Registration Form
+Supports headless mode for CI/CD environments (Jenkins)
+"""
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 import time
 import os
+import sys
+
+# Try to import webdriver_manager, fall back to system chromedriver if not available
+try:
+    from webdriver_manager.chrome import ChromeDriverManager
+
+    USE_WEBDRIVER_MANAGER = True
+except ImportError:
+    USE_WEBDRIVER_MANAGER = False
+    print("[INFO] webdriver-manager not installed, using system chromedriver")
 
 
 class TestStudentFeedbackForm:
@@ -21,14 +39,36 @@ class TestStudentFeedbackForm:
     7. Check Submit and Reset buttons work correctly
     """
 
-    def __init__(self):
+    # Use ASCII-safe symbols for Windows console compatibility
+    PASS_SYMBOL = "[PASS]"
+    FAIL_SYMBOL = "[FAIL]"
+
+    def __init__(self, headless=False):
         self.driver = None
         self.base_url = None
+        self.headless = headless
 
     def setup(self):
-        """Initialize WebDriver"""
-        self.driver = webdriver.Chrome()
-        self.driver.maximize_window()
+        """Initialize WebDriver with optional headless mode"""
+        options = Options()
+
+        if self.headless:
+            options.add_argument("--headless=new")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-gpu")
+            options.add_argument("--window-size=1920,1080")
+
+        # Use webdriver-manager if available, otherwise use system chromedriver
+        if USE_WEBDRIVER_MANAGER:
+            service = Service(ChromeDriverManager().install())
+            self.driver = webdriver.Chrome(service=service, options=options)
+        else:
+            self.driver = webdriver.Chrome(options=options)
+
+        if not self.headless:
+            self.driver.maximize_window()
+
         # Get absolute path to index.html
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.base_url = f"file:///{current_dir}/index.html".replace("\\", "/")
@@ -52,11 +92,11 @@ class TestStudentFeedbackForm:
             form = self.driver.find_element(By.ID, "feedbackForm")
             assert form.is_displayed()
 
-            print("✓ Page loaded successfully")
-            print("✓ Form is visible")
+            print(f"{self.PASS_SYMBOL} Page loaded successfully")
+            print(f"{self.PASS_SYMBOL} Form is visible")
             return True
         except Exception as e:
-            print(f"✗ Test failed: {str(e)}")
+            print(f"{self.FAIL_SYMBOL} Test failed: {str(e)}")
             return False
 
     def test_02_valid_submission(self):
@@ -91,12 +131,12 @@ class TestStudentFeedbackForm:
             success_msg = self.driver.find_element(By.ID, "successMessage")
             assert success_msg.is_displayed()
 
-            print("✓ Form filled with valid data")
-            print("✓ Form submitted successfully")
-            print("✓ Success message displayed")
+            print(f"{self.PASS_SYMBOL} Form filled with valid data")
+            print(f"{self.PASS_SYMBOL} Form submitted successfully")
+            print(f"{self.PASS_SYMBOL} Success message displayed")
             return True
         except Exception as e:
-            print(f"✗ Test failed: {str(e)}")
+            print(f"{self.FAIL_SYMBOL} Test failed: {str(e)}")
             return False
 
     def test_03_empty_fields_validation(self):
@@ -125,7 +165,7 @@ class TestStudentFeedbackForm:
             assert gender_error != ""
             assert feedback_error != ""
 
-            print("✓ All validation errors displayed correctly")
+            print(f"{self.PASS_SYMBOL} All validation errors displayed correctly")
             print(f"  - Name error: {name_error}")
             print(f"  - Email error: {email_error}")
             print(f"  - Mobile error: {mobile_error}")
@@ -134,7 +174,7 @@ class TestStudentFeedbackForm:
             print(f"  - Feedback error: {feedback_error}")
             return True
         except Exception as e:
-            print(f"✗ Test failed: {str(e)}")
+            print(f"{self.FAIL_SYMBOL} Test failed: {str(e)}")
             return False
 
     def test_04_invalid_email_validation(self):
@@ -163,11 +203,11 @@ class TestStudentFeedbackForm:
                     or "Email is required" in email_error
                 )
 
-                print(f"✓ Invalid email '{invalid_email}' rejected")
+                print(f"{self.PASS_SYMBOL} Invalid email '{invalid_email}' rejected")
 
             return True
         except Exception as e:
-            print(f"✗ Test failed: {str(e)}")
+            print(f"{self.FAIL_SYMBOL} Test failed: {str(e)}")
             return False
 
     def test_05_invalid_mobile_validation(self):
@@ -196,11 +236,11 @@ class TestStudentFeedbackForm:
                     or "required" in mobile_error.lower()
                 )
 
-                print(f"✓ Invalid mobile '{invalid_mobile}' rejected")
+                print(f"{self.PASS_SYMBOL} Invalid mobile '{invalid_mobile}' rejected")
 
             return True
         except Exception as e:
-            print(f"✗ Test failed: {str(e)}")
+            print(f"{self.FAIL_SYMBOL} Test failed: {str(e)}")
             return False
 
     def test_06_dropdown_selection(self):
@@ -214,7 +254,7 @@ class TestStudentFeedbackForm:
 
             # Get all options
             options = department_select.options
-            print(f"✓ Found {len(options)} department options")
+            print(f"{self.PASS_SYMBOL} Found {len(options)} department options")
 
             # Test selecting each option
             departments = [
@@ -230,12 +270,12 @@ class TestStudentFeedbackForm:
                 department_select.select_by_visible_text(dept)
                 selected_value = department_select.first_selected_option.text
                 assert selected_value == dept
-                print(f"✓ Successfully selected: {dept}")
+                print(f"{self.PASS_SYMBOL} Successfully selected: {dept}")
                 time.sleep(0.3)
 
             return True
         except Exception as e:
-            print(f"✗ Test failed: {str(e)}")
+            print(f"{self.FAIL_SYMBOL} Test failed: {str(e)}")
             return False
 
     def test_07_button_functionality(self):
@@ -250,7 +290,7 @@ class TestStudentFeedbackForm:
             self.driver.find_element(By.ID, "email").send_keys("test@example.com")
             self.driver.find_element(By.ID, "mobile").send_keys("1234567890")
 
-            print("✓ Fields filled with test data")
+            print(f"{self.PASS_SYMBOL} Fields filled with test data")
 
             # Click reset button
             self.driver.find_element(By.ID, "resetBtn").click()
@@ -271,18 +311,20 @@ class TestStudentFeedbackForm:
             assert email_value == ""
             assert mobile_value == ""
 
-            print("✓ Reset button works correctly - all fields cleared")
+            print(
+                f"{self.PASS_SYMBOL} Reset button works correctly - all fields cleared"
+            )
 
             # Test submit button (already tested in other cases)
             submit_btn = self.driver.find_element(By.ID, "submitBtn")
             assert submit_btn.is_displayed()
             assert submit_btn.is_enabled()
 
-            print("✓ Submit button is visible and enabled")
+            print(f"{self.PASS_SYMBOL} Submit button is visible and enabled")
 
             return True
         except Exception as e:
-            print(f"✗ Test failed: {str(e)}")
+            print(f"{self.FAIL_SYMBOL} Test failed: {str(e)}")
             return False
 
     def run_all_tests(self):
@@ -290,6 +332,10 @@ class TestStudentFeedbackForm:
         print("\n" + "=" * 60)
         print("STUDENT FEEDBACK FORM - SELENIUM TEST SUITE")
         print("=" * 60)
+        if self.headless:
+            print("[INFO] Running in HEADLESS mode (CI/CD)")
+        else:
+            print("[INFO] Running in NORMAL mode (with browser window)")
 
         results = []
 
@@ -340,7 +386,7 @@ class TestStudentFeedbackForm:
 
         for test_name, result in results:
             status = "PASSED" if result else "FAILED"
-            symbol = "✓" if result else "✗"
+            symbol = self.PASS_SYMBOL if result else self.FAIL_SYMBOL
             print(f"{symbol} {test_name}: {status}")
             if result:
                 passed += 1
@@ -354,7 +400,14 @@ class TestStudentFeedbackForm:
         print(f"Success Rate: {(passed / len(results) * 100):.2f}%")
         print("=" * 60)
 
+        # Return exit code for CI/CD
+        return 0 if failed == 0 else 1
+
 
 if __name__ == "__main__":
-    test_suite = TestStudentFeedbackForm()
-    test_suite.run_all_tests()
+    # Check for --headless flag (for CI/CD environments like Jenkins)
+    headless_mode = "--headless" in sys.argv or os.environ.get("CI") == "true"
+
+    test_suite = TestStudentFeedbackForm(headless=headless_mode)
+    exit_code = test_suite.run_all_tests()
+    sys.exit(exit_code)
