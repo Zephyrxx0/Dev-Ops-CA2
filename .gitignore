@@ -22,3 +22,12 @@ Thumbs.db
 
 # Test outputs
 *.log
+CA-2.zip
+jenkins_console_output.txt
+jenkins.png
+
+# Selenium test artifacts
+test_screenshots/
+*.png
+geckodriver.log
+chromedriver.log
